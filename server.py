@@ -39,7 +39,7 @@ def serverRun():
 		message, address = sckt.recvfrom(BUFFER_SIZE)
 	processedMessage = processMessage(message)
 	if(checksum(processedMessage)):
-		ack(processedMessage[0])
+		ack(processedMessage[0], address)
 		if(len(processedMessage) == 2):
 			username[processedMessage[1]] = address #register a new user
 		else:
