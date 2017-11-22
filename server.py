@@ -13,7 +13,7 @@ users = {} #username : IP
 def processMessage(message):
 	#message formats
 	#registering: checksum,username
-	#already registered: checksum,senderUsername,reciever1Username,reciever2Username,Message
+	#already registered: checksum`senderUsername`reciever1Username`reciever2Username`Message
 	return message.split("`")
 
 def checksum(processedMessage):
@@ -34,21 +34,33 @@ def ack(checksum, address):
 	sckt.sendto(checksum, (address, port))
 	return
 
+def sendMessage(processedMessage[], message):
+	#Currently assumes that the recipients have already registered
+	#relay message to recipients
+	if(len(processedMessage) == 5): #two recipients
+		sckt.sendto(message, (users[processedMessage[2]], port)) #first recipient
+		sckt.sendto(message, (users[processedMessage[3]], port)) #second recipient
+	else:
+		sckt.sendto(message, (users[processedMessage[2]], port))
+
+
 def serverRun():
 	message = None
+	print "waiting for message..."
 	while message is None: #keep checking until there is a response
 		message, address = sckt.recvfrom(BUFFER_SIZE)
 	processedMessage = processMessage(message)
+	print "message recieved"
 	if(checksum(processedMessage)):
 		ack(processedMessage[0], address)
 		if(len(processedMessage) == 2):
 			username[processedMessage[1]] = address #register a new user
 		else:
-			print "nothing"#send the message out to the users
+			print "relaying message"#send the message out to the users
+			sendMessage(processedMessage, message)
 	else:
-		#send message to recipients
-		print "nothing"
-	return
+		print "message corrupted" #no ack sent back
+	return serverRun()
 
 def main():
 	serverRun()
