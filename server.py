@@ -3,7 +3,6 @@ import socket
 ip = "0.0.0.0" #accept any IPv4 adress
 port = 5005	#port
 BUFFER_SIZE = 2048
-CHECKSUM_SIZE = 16
 
 sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	#initialize socket
 sckt.bind((ip, port))
@@ -34,7 +33,7 @@ def ack(checksum, address):
 	sckt.sendto(checksum, (address, port))
 	return
 
-def sendMessage(processedMessage[], message):
+def sendMessage(processedMessage, message):
 	#Currently assumes that the recipients have already registered
 	#relay message to recipients
 	if(len(processedMessage) == 5): #two recipients
