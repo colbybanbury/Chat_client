@@ -13,14 +13,14 @@ class MyTest(unittest.TestCase):
 	def test_checksum(self):
 		#needs implementation
 		message = "0"	#case of no message
-		self.assertTrue(server.checksum(server.processMessage(message)))
+		self.assertTrue(server.checkChecksum(server.processMessage(message)))
 		message = "user1`user2`user3`this is a test" #case of standard message format
 		processedMessage = server.processMessage(message)
 		messageSum = 0
 		for i in range(len(processedMessage)):
 			for k in range(len(processedMessage[i])):
 				messageSum += ord(processedMessage[i][k])
-		self.assertTrue(server.checksum(server.processMessage(str(messageSum) + "`" + message)))
+		self.assertTrue(server.checkChecksum(server.processMessage(str(messageSum) + "`" + message)))
 
 
 

@@ -15,7 +15,7 @@ def processMessage(message):
 	#already registered: checksum`senderUsername`reciever1Username`reciever2Username`Message
 	return message.split("`")
 
-def checksum(processedMessage):
+def checkChecksum(processedMessage):
 #checks to see if the message came through correctly
 #in this implementation the checksum is equal to the sum of the rest of the message
 	checksum = processedMessage[0]
@@ -23,7 +23,6 @@ def checksum(processedMessage):
 	for i in range(len(processedMessage)-1):
 		for k in range(len(processedMessage[i+1])):
 			messageSum += ord(processedMessage[i+1][k])
-	print messageSum
 	if(messageSum == int(checksum)):
 		return True
 	else:
@@ -51,7 +50,7 @@ def serverRun():
 		message, address = sckt.recvfrom(BUFFER_SIZE)
 	processedMessage = processMessage(message)
 	print "message recieved"
-	if(checksum(processedMessage)):
+	if(checkChecksum(processedMessage)):
 		ack(processedMessage[0], address)
 		if(len(processedMessage) == 2):
 			username[processedMessage[1]] = address #register a new user
