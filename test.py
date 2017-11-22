@@ -17,9 +17,9 @@ class MyTest(unittest.TestCase):
 		message = "user1`user2`user3`this is a test" #case of standard message format
 		processedMessage = server.processMessage(message)
 		messageSum = 0
-		for i in range(len(processedMessage)-1):
-			for k in range(len(processedMessage[i+1])):
-				messageSum = ord(processedMessage[i+1][k])
+		for i in range(len(processedMessage)):
+			for k in range(len(processedMessage[i])):
+				messageSum += ord(processedMessage[i][k])
 		self.assertTrue(server.checksum(server.processMessage(str(messageSum) + "`" + message)))
 
 

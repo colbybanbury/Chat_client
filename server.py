@@ -22,7 +22,8 @@ def checksum(processedMessage):
 	messageSum = 0
 	for i in range(len(processedMessage)-1):
 		for k in range(len(processedMessage[i+1])):
-			messageSum = ord(processedMessage[i+1][k])
+			messageSum += ord(processedMessage[i+1][k])
+	print messageSum
 	if(messageSum == int(checksum)):
 		return True
 	else:
