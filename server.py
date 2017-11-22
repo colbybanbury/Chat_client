@@ -31,6 +31,7 @@ def checksum(processedMessage):
 
 def ack(checksum, address):
 	#send the checksum back to the sender
+	sckt.sendto(checksum, (address, port))
 	return
 
 def serverRun():
