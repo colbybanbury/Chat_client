@@ -1,13 +1,38 @@
 import socket
+import time
 
 ip = "0.0.0.0" #accept any IPv4 adress
-port = 5005	#port
+serverPort = 8080	#port
+clientPort = 8081
+
 BUFFER_SIZE = 2048
 
-sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	#initialize socket
-sckt.bind((ip, port))
 
-users = {} #username : IP
+sckt = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	#initialize socket
+sckt.bind((ip, serverPort))
+
+sender = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	#initialize sender 
+
+users = {"colby" : "localhost"} #username : IP
+
+messages = {"colby": ["1721`thomas`colby``hello", "2484`thomas`colby``hello number 2" ]}
+
+def send(address, message, checksum, trys):
+	if trys >25:
+		return 0
+	sender.sendto(message, (address, clientPort)) #send to server
+	timer = 0
+	responseMessage = None
+	while timer < 100000:
+		responseMessage, otherAddress = sckt.recvfrom(BUFFER_SIZE)	#wait for ack
+		timer += 1
+		if not (responseMessage is None):
+			if responseMessage == checksum:
+				return 1
+			else:
+				return send(address, message, checksum, trys+1) #resend
+	return send(address, message, checksum, trys+1) #resend
+
 
 def processMessage(message):
 	#message formats
@@ -24,24 +49,46 @@ def checkChecksum(processedMessage):
 		for k in range(len(processedMessage[i+1])):
 			messageSum += ord(processedMessage[i+1][k])
 	if(messageSum == int(checksum)):
+		print("checksum passed")
 		return True
 	else:
 		return False
 
-def ack(checksum, address):
-	#send the checksum back to the sender
-	sckt.sendto(checksum, (address, port))
+def relayMessages(processedMessage):
+	userMessages = messages[processedMessage[1]]
+	if int(processedMessage[2]) < len(userMessages): #if there are new messages
+		for i in range(int(processedMessage[2]),len(userMessages)):
+			print "sending message: " + str(i)
+			print userMessages
+			send(users[processedMessage[1]], userMessages[i], processMessage(userMessages[i])[0], 0)
+	send(users[processedMessage[1]], "422`done", "422", 0)
+	print "done sent"
 	return
 
-def sendMessage(processedMessage, message):
+def ack(checksum, address):
+	#send the checksum back to the sender
+	sender.sendto(checksum, (address, clientPort))
+	return
+
+def saveMessage(processedMessage, message):
 	#Currently assumes that the recipients have already registered
 	#relay message to recipients
-	if(len(processedMessage) == 5): #two recipients
-		sckt.sendto(message, (users[processedMessage[2]], port)) #first recipient
-		sckt.sendto(message, (users[processedMessage[3]], port)) #second recipient
+	print "saving message"
+	#saves the message to be requested later by the recipient
+	if(processedMessage[3] != ""): #two recipients
+		if not processedMessage[3] in messages:
+			messages[processedMessage[3]] = [message]
+		else:
+			messages[processedMessage[3]].append(message)
+	if not processedMessage[1] in messages:	#save sent messages in the conversation too
+		messages[processedMessage[1]] = [message]
 	else:
-		sckt.sendto(message, (users[processedMessage[2]], port))
-
+		messages[processedMessage[1]].append(message)
+	if not processedMessage[2] in messages: #if this person has not yet been added to messages add them
+		messages[processedMessage[2]] = [message]
+	else:
+		messages[processedMessage[2]].append(message)
+	return
 
 def serverRun():
 	message = None
@@ -51,12 +98,17 @@ def serverRun():
 	processedMessage = processMessage(message)
 	print "message recieved"
 	if(checkChecksum(processedMessage)):
-		ack(processedMessage[0], address)
+		time.sleep(.5)
+		ack(processedMessage[0], address[0])
 		if(len(processedMessage) == 2):
-			username[processedMessage[1]] = address #register a new user
+			users[processedMessage[1]] = address[0] #register a new user
+			print "registered"
+			print users
+		elif(len(processedMessage) == 3):
+			relayMessages(processedMessage)
 		else:
-			print "relaying message"#send the message out to the users
-			sendMessage(processedMessage, message)
+			#send the message out to the users
+			saveMessage(processedMessage, message)
 	else:
 		print "message corrupted" #no ack sent back
 	return serverRun()
