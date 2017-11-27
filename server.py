@@ -1,5 +1,9 @@
 import socket
 
+#Colby Banbury and Thomas Nelson
+#The server runs and waits for messages. It saves clients messages and relays them upon request
+#Files are not saved and instead trasmitted directly
+#reliability is achieve through checksums and acks
 
 ip = "0.0.0.0" #accept any IPv4 adress
 serverPort = 8080	#port

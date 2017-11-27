@@ -1,6 +1,13 @@
 import socket
 import sys
 
+#Colby Banbury and Thomas Nelson
+#The client allows for sending and recieving of messages
+#due to the potability issues of select, stdin and sockets can not be polled at the same time
+#therefore the user has to request for messages to be loaded from the server and displayed.
+#reliability is achieved with checksums and acks
+#each type of communication has a different type of message signature
+
 serverIP = "localhost"#"73.188.177.154" #IP address of the server
 serverPort = 8080
 
@@ -17,8 +24,10 @@ messages = {"":[]}
 
 def processMessage(message):
 	#message formats
-	#registering: checksum,username
-	#already registered: checksum`senderUsername`reciever1Username`reciever2Username`Message
+	#registering: checksum`username
+	#message send: checksum`senderUsername`reciever1Username`reciever2Username`Message
+	#file transfer: checksum`senderUsername`recipient`filename
+	#message request: checksum`senderUsername`numMessages
 	return message.split("`")
 
 def ack(checksum, address):
@@ -164,7 +173,7 @@ def messageCenter(username):
 		print "You have conversations with: "
 		for key in messages:
 			print key
-		userInput = "~"
+		userInput = "~" #something that should never be a user
 		while(not userInput in messages):
 			userInput = raw_input("select a conversation to view: ")
 		print "messages from " + userInput + ": "
@@ -196,7 +205,7 @@ def messageCenter(username):
 						send("1`1", "1", 0) #1 is the confirmation code
 						data, addr = reciever.recvfrom(BUFFER_SIZE)
 						"Received File:",data.strip()
-						destination = raw_input("enter the destination of the file")
+						destination = raw_input("enter the destination/filename of the file")
 						f = open(destination,'wb')
 						data, addr = reciever.recvfrom(BUFFER_SIZE)
 						try:
