@@ -1,4 +1,5 @@
 import socket
+import sys
 
 serverIP = "localhost"#"73.188.177.154" #IP address of the server
 serverPort = 8080
@@ -107,35 +108,42 @@ def requestMessages(username):
 	recieveMessages()
 	return
 
-# def sendFile(username, recipient, filename):
-# 	message = username + '`' + recipient + '`' + filename #file transfer initiation message
-# 	checksum = generateChecksum(message)
-# 	message = checksum + '`' + message
-# 	if(send(message, checksum, 0)):
-# 		responseMessage = None
-# 		address = None
-# 		while (timer < 10000) and responseMessage is None: #wait for response from other client
-# 			responseMessage, address = reciever.recvfrom(BUFFER_SIZE)	#wait for ack
-# 			timer += 1
-# 		processedMessage = processMessage(responseMessage)
-# 		if(checkChecksum(processedMessage)):
-# 			ack(processedMessage[0], address)
+def sendFile(username, recipient, filename):
+	message = username + '`' + recipient + '`' + filename #file transfer initiation message
+	checksum = generateChecksum(message)
+	message = checksum + '`' + message
+	if(send(message, checksum, 0)):
+		responseMessage = None
+		address = None
+		timer = 0
+		while (timer < 10000) and responseMessage is None: #wait for response from other client
+			responseMessage, address = reciever.recvfrom(BUFFER_SIZE)
+			timer += 1
+		processedMessage = processMessage(responseMessage)
+		if(checkChecksum(processedMessage)):
+			ack(processedMessage[0], address[0])
+			if(processedMessage[1]=="1"):
+				f = open(filename, "rb")
+				data = f.read(BUFFER_SIZE)
+				while data:#keeps sending over packets until there is nothing left to send 
+					checksum = generateChecksum(data)
+					message = checksum +'`' + data
+					send(message, checksum, 0)
+					data = f.read(BUFFER_SIZE)
+				send("0`0", "0", 0) #done sending the file
+			else:
+				print "File transfer was denied"
+		else:
+			print "file transfer failed"
+	return
 
 
-
-# 	f = open(filename, "rb")
-# 	data = f.read(BUFFER_SIZE)
-# 	while data:#keeps sending over packets until there is nothing left to send
-# 		if s.sendto(data, (serverIP, serverPort)):
-# 			data = f.read(BUFFER_SIZE)
-
-
-
+#the text interface is a little complicated code wise... please don't judge me
 def messageCenter(username):
 	print "--Message Center--"
 	userInput = ""
-	while (userInput.lower() != "r") and (userInput.lower() != "w"):
-		userInput = raw_input("Enter r to read or w to write recipients: ")
+	while (userInput.lower() != "r") and (userInput.lower() != "w") and (userInput.lower() != "f"):
+		userInput = raw_input("Enter r to read, w to write, or f for file transfer: ")
 	if(userInput.lower() == 'w'):
 		while (userInput != "1") and (userInput != "2"):
 			userInput = raw_input("Enter 1 or 2 recipients: ")
@@ -151,7 +159,7 @@ def messageCenter(username):
 			print "message failed to send"
 		else:
 			print "message sent"
-	else:
+	elif userInput.lower() == "r":
 		requestMessages(username.lower())
 		print "You have conversations with: "
 		for key in messages:
@@ -163,6 +171,46 @@ def messageCenter(username):
 		for message in messages[userInput]:
 			tempMes = processMessage(message)
 			print tempMes[1] +': ' + tempMes[4]
+	else:
+		userInput = ""
+		while (userInput.lower() != "r") and (userInput.lower() != "s"):
+			userInput = raw_input("Enter s to send or r to recieve: ")
+		if userInput.lower() == "s":
+			filename = raw_input("enter the filename: ")
+			recipient = raw_input("enter the recipient: ")
+			sendFile(username, recipient, filename)
+		else:
+			message = None
+			while message is None:
+				print "Waiting for file transfer request... (ctl c to quit)"
+				message, address = reciever.recvfrom(BUFFER_SIZE)
+			if not message is None:
+				processedMessage = processMessage(message)
+				if(checkChecksum(processedMessage)):
+					ack(processedMessage[0], address[0])
+					print "file transfer request from " + processedMessage[1]
+					print processedMessage[3]
+					while (userInput.lower() != "y") and (userInput.lower() != "n"):
+						userInput = raw_input("y to accept file transfer n to deny the request")
+					if(userInput == "y"):
+						send("1`1", "1", 0) #1 is the confirmation code
+						data, addr = reciever.recvfrom(BUFFER_SIZE)
+						"Received File:",data.strip()
+						destination = raw_input("enter the destination of the file")
+						f = open(destination,'wb')
+						data, addr = reciever.recvfrom(BUFFER_SIZE)
+						try:
+						    while(data):
+						        f.write(data)
+						        reciever.settimeout(2)
+						        data,addr = reciever.recvfrom(buf)
+						except timeout:
+						    print "File Downloaded"
+					else:
+						send("0`0", "0", 0) #0 is the deny code
+						print "file transfer denied"
+				else:
+					print "file transfer failed"
 	quit = raw_input("press q to quit or c to continue: ")
 	if quit.lower() != "q":
 		messageCenter(username)

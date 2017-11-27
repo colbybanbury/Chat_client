@@ -1,5 +1,5 @@
 import socket
-import time
+
 
 ip = "0.0.0.0" #accept any IPv4 adress
 serverPort = 8080	#port
@@ -90,6 +90,28 @@ def saveMessage(processedMessage, message):
 		messages[processedMessage[2]].append(message)
 	return
 
+def fileTransfer(processedMessage, message):
+	send(users[processedMessage[2]], message, processedMessage[0], 0)
+	responseMessage = None
+	print "waiting for file transfer response..."
+	while responseMessage is None: #keep checking until there is a response
+		responseMessage, address = sckt.recvfrom(BUFFER_SIZE)
+	processedMessage = processMessage(responseMessage)
+	if(checkChecksum(processedMessage)):
+		ack(processedMessage[0], address[0])
+		send(users[processedMessage[1]], responseMessage, processedMessage[0], 0)
+		if processedMessage[1] == "1":
+			data = None
+			while data != "0`0":
+				data = None
+				while data is None:
+					data, address = sckt.recvfrom(BUFFER_SIZE)
+				processedData = processMessage(data)
+				if(checkChecksum(processedData)):
+					ack(processedMessage[0], address[0])
+					send(processedMessage[2], data, processedData[0], 0)
+	return
+
 def serverRun():
 	message = None
 	print "waiting for message..."
@@ -98,7 +120,6 @@ def serverRun():
 	processedMessage = processMessage(message)
 	print "message recieved"
 	if(checkChecksum(processedMessage)):
-		time.sleep(.5)
 		ack(processedMessage[0], address[0])
 		if(len(processedMessage) == 2):
 			users[processedMessage[1]] = address[0] #register a new user
@@ -106,6 +127,8 @@ def serverRun():
 			print users
 		elif(len(processedMessage) == 3):
 			relayMessages(processedMessage)
+		elif(len(processedMessage)==4):
+			fileTransfer(processedMessage, message)
 		else:
 			#send the message out to the users
 			saveMessage(processedMessage, message)

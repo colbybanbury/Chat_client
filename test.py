@@ -1,7 +1,7 @@
 import unittest
 import server
 
-
+#things quickly left the relm of unittests since much of my issues stemmed from the actual udp communication aspect
 class MyTest(unittest.TestCase):
 
 	def test_processMessage(self):
